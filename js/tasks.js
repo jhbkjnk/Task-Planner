@@ -281,59 +281,60 @@ const TaskModule = {
     // ---------------- PREPARER STATUS DROPDOWN ----------------
     if (el.classList.contains('prep-status-dropdown')) {
 
-      const index = el.dataset.index;
+  const index = el.dataset.index;
 
-      if (!task.preparers) {
-        task.preparers = (task.preparer || []).map(p => ({
-          name: p,
-          status: task.prepStatus || ''
-        }));
-      }
+  if (!task.preparers) {
+    task.preparers = (task.preparer || []).map(p => ({
+      name: p,
+      status: task.prepStatus || ''
+    }));
+  }
 
-      const oldVal = task.preparers[index].status;
-      const newVal = el.value;
+  const oldVal = task.preparers[index].status;
+  const newVal = el.value;
 
-      if (oldVal !== newVal) {
-        task.preparers[index].status = newVal;
+  if (oldVal !== newVal) {
+    task.preparers[index].status = newVal;
 
-        DataStore.saveTask(task);
+    // ✅ THIS IS THE FIX
+    task.prepStatus = newVal;
 
-        changes.preparerStatus = {
-          user: task.preparers[index].name,
-          old: oldVal,
-          new: newVal
-        };
-      }
-    }
+    changes.preparerStatus = {
+      user: task.preparers[index].name,
+      old: oldVal,
+      new: newVal
+    };
+  }
+}
 
     // ---------------- REVIEWER STATUS DROPDOWN ----------------
     if (el.classList.contains('rev-status-dropdown')) {
 
-      const index = el.dataset.index;
+  const index = el.dataset.index;
 
-      if (!task.reviewers) {
-        task.reviewers = (task.reviewer || []).map(r => ({
-          name: r,
-          status: task.revStatus || ''
-        }));
-      }
+  if (!task.reviewers) {
+    task.reviewers = (task.reviewer || []).map(r => ({
+      name: r,
+      status: task.revStatus || ''
+    }));
+  }
 
-      const oldVal = task.reviewers[index].status;
-      const newVal = el.value;
+  const oldVal = task.reviewers[index].status;
+  const newVal = el.value;
 
-      if (oldVal !== newVal) {
-        task.reviewers[index].status = newVal;
+  if (oldVal !== newVal) {
+    task.reviewers[index].status = newVal;
 
-        DataStore.saveTask(task);
+    // ✅ THIS IS THE FIX
+    task.revStatus = newVal;
 
-        changes.reviewerStatus = {
-          user: task.reviewers[index].name,
-          old: oldVal,
-          new: newVal
-        };
-      }
-    }
-
+    changes.reviewerStatus = {
+      user: task.reviewers[index].name,
+      old: oldVal,
+      new: newVal
+    };
+  }
+}
     // ---------------- SAVE CHANGES ----------------
     if (Object.keys(changes).length > 0) {
       DataStore.addAuditEntry(task, changes, 'Inline edit from grid');
