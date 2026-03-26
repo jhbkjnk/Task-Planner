@@ -35,8 +35,8 @@ module.exports = async function (context, req) {
 
         // MULTIPLE GROUPS
         const groupIds = [
-            "8e108e06-7848-48cf-8623-e6b06c27f2db",
-            "10fe83f9-90de-4c50-96a2-1a053a64a99b"
+            "c2861638-8302-4b8d-a172-840a78a1215e",
+            "ce4524d8-8f66-4f29-862d-e1b949deca18"
         ];
 
         let allUsers = [];
