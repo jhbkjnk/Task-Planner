@@ -296,10 +296,27 @@ if (removeBtn) {
   const index = parseInt(removeBtn.dataset.index, 10);
 
   const task = DataStore.tasks.find(t => t.id === taskId);
-  if (!task || !task.preparers) return;
+  if (!task) return;
 
-  task.preparers.splice(index, 1);
+// normalize preparers
+if (!task.preparers) {
+  const arr = Array.isArray(task.preparer)
+    ? task.preparer
+    : task.preparer
+      ? [task.preparer]
+      : [];
 
+  task.preparers = arr.map(p => ({
+    name: p,
+    status: task.prepStatus || 'Assigned to preparer'
+  }));
+}
+
+// remove selected
+task.preparers.splice(index, 1);
+
+// sync back
+task.preparer = task.preparers.map(p => p.name);
   DataStore.saveTask(task);
   TaskModule.renderTasks();
 
