@@ -145,220 +145,327 @@ const TaskModule = {
   },
 
   bindInlineEditing() {
-    const body = document.getElementById('taskTableBody');
-    if (!body) return;
+  const body = document.getElementById('taskTableBody');
+  if (!body) return;
 
-    body.addEventListener('change', (e) => {
-      const el = e.target;
+  body.addEventListener('change', (e) => {
+    const el = e.target;
 
-      if (el.classList.contains('row-select')) {
-        this.updateBulkBar();
-        return;
+    if (el.classList.contains('row-select')) {
+      this.updateBulkBar();
+      return;
+    }
+
+    const tr = el.closest('tr');
+    if (!tr) return;
+    const taskId = tr.dataset.taskId;
+    const task = DataStore.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const changes = {};
+
+    // ---------------- PREPARER ----------------
+    if (el.classList.contains('inline-preparer')) {
+      const oldVal = task.preparer || '';
+      const newVal = el.value.trim();
+      if (oldVal !== newVal) {
+        task.preparer = newVal;
+        changes.preparer = { old: oldVal, new: newVal };
+      }
+    }
+
+    // ---------------- REVIEWER ----------------
+    if (el.classList.contains('inline-reviewer')) {
+      const oldVal = task.reviewer || '';
+      const newVal = el.value.trim();
+      if (oldVal !== newVal) {
+        task.reviewer = newVal;
+        changes.reviewer = { old: oldVal, new: newVal };
+      }
+    }
+
+    // ---------------- PREPARER STATUS ----------------
+    if (el.classList.contains('inline-prep-status')) {
+      const oldVal = task.prepStatus || '';
+      const newVal = el.value;
+      if (oldVal !== newVal) {
+        task.prepStatus = newVal;
+        changes.prepStatus = { old: oldVal, new: newVal };
+      }
+    }
+
+    // ---------------- REVIEWER STATUS ----------------
+    if (el.classList.contains('inline-rev-status')) {
+      const oldVal = task.revStatus || '';
+      const newVal = el.value;
+      if (oldVal !== newVal) {
+        task.revStatus = newVal;
+        changes.revStatus = { old: oldVal, new: newVal };
+      }
+    }
+
+    // ---------------- ADD PREPARER ----------------
+    if (el.classList.contains('add-prep-dropdown')) {
+
+      const name = el.value;
+      if (!name) return;
+
+      let existing = [];
+
+      if (Array.isArray(task.preparers)) {
+        existing = task.preparers;
+      } else if (Array.isArray(task.preparer)) {
+        existing = task.preparer.map(p => ({
+          name: p,
+          status: task.prepStatus || 'Assigned to preparer'
+        }));
+      } else if (typeof task.preparer === 'string' && task.preparer) {
+        existing = [{
+          name: task.preparer,
+          status: task.prepStatus || 'Assigned to preparer'
+        }];
       }
 
-      const tr = el.closest('tr');
-      if (!tr) return;
-      const taskId = tr.dataset.taskId;
-      const task = DataStore.tasks.find(t => t.id === taskId);
-      if (!task) return;
-
-      const changes = {};
-
-      if (el.classList.contains('inline-preparer')) {
-        const oldVal = task.preparer || '';
-        const newVal = el.value.trim();
-        if (oldVal !== newVal) {
-          task.preparer = newVal;
-          changes.preparer = { old: oldVal, new: newVal };
-        }
+      if (!existing.some(p => p.name === name)) {
+        existing.push({
+          name,
+          status: 'Assigned to preparer'
+        });
       }
 
-      if (el.classList.contains('inline-reviewer')) {
-        const oldVal = task.reviewer || '';
-        const newVal = el.value.trim();
-        if (oldVal !== newVal) {
-          task.reviewer = newVal;
-          changes.reviewer = { old: oldVal, new: newVal };
-        }
+      task.preparers = existing;
+      task.preparer = existing.map(p => p.name);
+
+      DataStore.saveTask(task);
+      TaskModule.renderTasks();
+      return;
+    }
+
+    // ---------------- ADD REVIEWER ----------------
+    if (el.classList.contains('add-reviewer-dropdown')) {
+
+      const name = el.value;
+      if (!name) return;
+
+      let existing = [];
+
+      if (Array.isArray(task.reviewers)) {
+        existing = task.reviewers;
+      } else if (Array.isArray(task.reviewer)) {
+        existing = task.reviewer.map(r => ({
+          name: r,
+          status: task.revStatus || 'Assigned to reviewer'
+        }));
+      } else if (typeof task.reviewer === 'string' && task.reviewer) {
+        existing = [{
+          name: task.reviewer,
+          status: task.revStatus || 'Assigned to reviewer'
+        }];
       }
 
-      if (el.classList.contains('inline-prep-status')) {
-        const oldVal = task.prepStatus || '';
-        const newVal = el.value;
-        if (oldVal !== newVal) {
-          task.prepStatus = newVal;
-          changes.prepStatus = { old: oldVal, new: newVal };
-        }
+      if (!existing.some(r => r.name === name)) {
+        existing.push({
+          name,
+          status: 'Assigned to reviewer'
+        });
       }
 
-      if (el.classList.contains('inline-rev-status')) {
-        const oldVal = task.revStatus || '';
-        const newVal = el.value;
-        if (oldVal !== newVal) {
-          task.revStatus = newVal;
-          changes.revStatus = { old: oldVal, new: newVal };
-        }
-      }
+      task.reviewers = existing;
+      task.reviewer = existing.map(r => r.name);
 
-      if (el.classList.contains('add-prep-dropdown')) {
+      DataStore.saveTask(task);
+      TaskModule.renderTasks();
+      return;
+    }
 
-  const taskId = el.dataset.taskId;
-  const task = DataStore.tasks.find(t => t.id === taskId);
-  if (!task) return;
+    // ---------------- PREPARER STATUS DROPDOWN ----------------
+    if (el.classList.contains('prep-status-dropdown')) {
 
-  const name = el.value;
-  if (!name) return;
-
-  let existing = [];
-
-  if (Array.isArray(task.preparers)) {
-    existing = task.preparers;
-  } else if (Array.isArray(task.preparer)) {
-    existing = task.preparer.map(p => ({
-      name: p,
-      status: task.prepStatus || 'Assigned to preparer'
-    }));
-  } else if (typeof task.preparer === 'string' && task.preparer) {
-    existing = [{
-      name: task.preparer,
-      status: task.prepStatus || 'Assigned to preparer'
-    }];
-  }
-
-  if (!existing.some(p => p.name === name)) {
-    existing.push({
-      name,
-      status: 'Assigned to preparer'
-    });
-  }
-
-  task.preparers = existing;
-  task.preparer = existing.map(p => p.name);
-
-  DataStore.saveTask(task);
-  TaskModule.renderTasks();
-  return;
-}
-
-      if (el.classList.contains('prep-status-dropdown')) {
-    
       const index = el.dataset.index;
-    
+
       if (!task.preparers) {
         task.preparers = (task.preparer || []).map(p => ({
           name: p,
           status: task.prepStatus || ''
         }));
       }
-    
+
       const oldVal = task.preparers[index].status;
       const newVal = el.value;
-    
+
       if (oldVal !== newVal) {
         task.preparers[index].status = newVal;
-    
+
         changes.preparerStatus = {
           user: task.preparers[index].name,
           old: oldVal,
           new: newVal
         };
       }
-    }    
-
-      if (Object.keys(changes).length > 0) {
-        DataStore.addAuditEntry(task, changes, 'Inline edit from grid');
-        DataStore.saveTask(task);
-        FiltersContext.renderStats(FiltersContext.getFilteredTasks());
-      }
-    });
-
-    const selectAll = document.getElementById('selectAll');
-    if (selectAll) {
-      selectAll.addEventListener('change', () => {
-        const checked = selectAll.checked;
-        document.querySelectorAll('.row-select').forEach(cb => cb.checked = checked);
-        this.updateBulkBar();
-      });
     }
-  },
 
-  bindRowMenu() {
-    const body = document.getElementById('taskTableBody');
-    if (!body) return;
+    // ---------------- REVIEWER STATUS DROPDOWN ----------------
+    if (el.classList.contains('rev-status-dropdown')) {
 
-    body.addEventListener('click', (e) => {
+      const index = el.dataset.index;
 
-     const removeBtn = e.target.closest('.remove-prep');
+      if (!task.reviewers) {
+        task.reviewers = (task.reviewer || []).map(r => ({
+          name: r,
+          status: task.revStatus || ''
+        }));
+      }
 
-if (removeBtn) {
+      const oldVal = task.reviewers[index].status;
+      const newVal = el.value;
 
-  const taskId = removeBtn.dataset.taskId;
-  const index = parseInt(removeBtn.dataset.index, 10);
+      if (oldVal !== newVal) {
+        task.reviewers[index].status = newVal;
 
-  const task = DataStore.tasks.find(t => t.id === taskId);
-  if (!task) return;
+        changes.reviewerStatus = {
+          user: task.reviewers[index].name,
+          old: oldVal,
+          new: newVal
+        };
+      }
+    }
 
-// normalize preparers
-if (!task.preparers) {
-  const arr = Array.isArray(task.preparer)
-    ? task.preparer
-    : task.preparer
-      ? [task.preparer]
-      : [];
-
-  task.preparers = arr.map(p => ({
-    name: p,
-    status: task.prepStatus || 'Assigned to preparer'
-  }));
-}
-
-// remove selected
-task.preparers.splice(index, 1);
-
-// sync back
-task.preparer = task.preparers.map(p => p.name);
-  DataStore.saveTask(task);
-  TaskModule.renderTasks();
-
-  return;
-}
-      const moreBtn      = e.target.closest('.btn-more');
-      const updateBtn    = e.target.closest('.action-update');
-      const duplicateBtn = e.target.closest('.action-duplicate');
-      const deleteBtn    = e.target.closest('.action-delete');
-
-      if (moreBtn) {
-  e.stopPropagation();
-  const menu = moreBtn.closest('.action-menu');
-  const dropdown = menu.querySelector('.action-menu-dropdown');
-
-  document.querySelectorAll('.action-menu-dropdown.show').forEach(d => {
-    if (d !== dropdown) d.classList.remove('show');
+    // ---------------- SAVE CHANGES ----------------
+    if (Object.keys(changes).length > 0) {
+      DataStore.addAuditEntry(task, changes, 'Inline edit from grid');
+      DataStore.saveTask(task);
+      FiltersContext.renderStats(FiltersContext.getFilteredTasks());
+    }
   });
 
-  dropdown.classList.toggle('show');
-  return; 
-}
-
-      if (updateBtn)    this.openUpdateModal(updateBtn);
-      if (duplicateBtn) this.duplicateTask(duplicateBtn);
-      if (deleteBtn)    this.deleteTask(deleteBtn);
+  const selectAll = document.getElementById('selectAll');
+  if (selectAll) {
+    selectAll.addEventListener('change', () => {
+      const checked = selectAll.checked;
+      document.querySelectorAll('.row-select').forEach(cb => cb.checked = checked);
+      this.updateBulkBar();
     });
+  }
+},
 
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.action-menu')) {
-        document.querySelectorAll('.action-menu-dropdown.show').forEach(d => d.classList.remove('show'));
+  bindRowMenu() {
+  const body = document.getElementById('taskTableBody');
+  if (!body) return;
+
+  body.addEventListener('click', (e) => {
+
+    // ---------------- REMOVE PREPARER ----------------
+    const removeBtn = e.target.closest('.remove-prep');
+
+    if (removeBtn) {
+
+      const taskId = removeBtn.dataset.taskId;
+      const index = parseInt(removeBtn.dataset.index, 10);
+
+      const task = DataStore.tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      // normalize preparers
+      if (!task.preparers) {
+        const arr = Array.isArray(task.preparer)
+          ? task.preparer
+          : task.preparer
+            ? [task.preparer]
+            : [];
+
+        task.preparers = arr.map(p => ({
+          name: p,
+          status: task.prepStatus || 'Assigned to preparer'
+        }));
       }
-    });
 
-    const form = document.getElementById('formUpdateStatus');
-    if (form) {
-      form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        this.saveUpdateModal();
-      });
+      // remove selected
+      task.preparers.splice(index, 1);
+
+      // sync back
+      task.preparer = task.preparers.map(p => p.name);
+
+      DataStore.saveTask(task);
+      TaskModule.renderTasks();
+
+      return;
     }
-  },
+
+    // ---------------- REMOVE REVIEWER (NEW) ----------------
+    const removeRevBtn = e.target.closest('.remove-reviewer');
+
+    if (removeRevBtn) {
+
+      const taskId = removeRevBtn.dataset.taskId;
+      const index = parseInt(removeRevBtn.dataset.index, 10);
+
+      const task = DataStore.tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      // normalize reviewers
+      if (!task.reviewers) {
+        const arr = Array.isArray(task.reviewer)
+          ? task.reviewer
+          : task.reviewer
+            ? [task.reviewer]
+            : [];
+
+        task.reviewers = arr.map(r => ({
+          name: r,
+          status: task.revStatus || 'Assigned to reviewer'
+        }));
+      }
+
+      // remove selected
+      task.reviewers.splice(index, 1);
+
+      // sync back
+      task.reviewer = task.reviewers.map(r => r.name);
+
+      DataStore.saveTask(task);
+      TaskModule.renderTasks();
+
+      return;
+    }
+
+    // ---------------- OTHER BUTTONS ----------------
+    const moreBtn      = e.target.closest('.btn-more');
+    const updateBtn    = e.target.closest('.action-update');
+    const duplicateBtn = e.target.closest('.action-duplicate');
+    const deleteBtn    = e.target.closest('.action-delete');
+
+    if (moreBtn) {
+      e.stopPropagation();
+      const menu = moreBtn.closest('.action-menu');
+      const dropdown = menu.querySelector('.action-menu-dropdown');
+
+      document.querySelectorAll('.action-menu-dropdown.show').forEach(d => {
+        if (d !== dropdown) d.classList.remove('show');
+      });
+
+      dropdown.classList.toggle('show');
+      return;
+    }
+
+    if (updateBtn)    this.openUpdateModal(updateBtn);
+    if (duplicateBtn) this.duplicateTask(duplicateBtn);
+    if (deleteBtn)    this.deleteTask(deleteBtn);
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.action-menu')) {
+      document.querySelectorAll('.action-menu-dropdown.show').forEach(d => d.classList.remove('show'));
+    }
+  });
+
+  const form = document.getElementById('formUpdateStatus');
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.saveUpdateModal();
+    });
+  }
+},
 
   bindBulkActions() {
     const bulkDelete = document.getElementById('bulkDelete');
@@ -523,6 +630,11 @@ if (bulkDelete) {
         ? [task.reviewer]
         : [];
 
+    const reviewers = task.reviewers || reviewerArray.map(r => ({
+      name: r,
+      status: task.revStatus || 'Assigned to reviewer'
+    }));
+
     tr.innerHTML = `
       <td><input type="checkbox" class="row-select" data-id="${task.id}"></td>
       <td>${engagement.entity || '—'}</td>
@@ -541,8 +653,8 @@ if (bulkDelete) {
         <div class="prep-container">
           ${preparers.map((p, i) => `
             <div class="prep-row">
-           <span class="preparer-pill">${p.name}</span>
-           </div>
+              <span class="preparer-pill">${p.name}</span>
+            </div>
           `).join('')}
 
           <select class="add-prep-dropdown" data-task-id="${task.id}">
@@ -580,22 +692,46 @@ if (bulkDelete) {
       </td>
 
       <!-- REVIEWER -->
-      <td class="reviewer-cell">
-        ${reviewerArray.map(r => {
-          const user = DataStore.users.find(u => u.displayName === r || u.email === r);
-          return user ? user.displayName : r;
-        }).join(', ') || 'Select'}
+      <td style="vertical-align: top;">
+        <div class="prep-container">
+          ${reviewers.map((r, i) => `
+            <div class="prep-row">
+              <span class="preparer-pill">${r.name}</span>
+            </div>
+          `).join('')}
+
+          <select class="add-reviewer-dropdown" data-task-id="${task.id}">
+            <option value="">+ Add Reviewer</option>
+            ${(DataStore.users || []).map(u => `
+              <option value="${u.displayName}">${u.displayName}</option>
+            `).join('')}
+          </select>
+        </div>
       </td>
 
       <!-- REVIEWER STATUS -->
-      <td>
-        <select class="inline-select inline-rev-status" data-task-id="${task.id}">
-          <option ${task.revStatus === 'Assigned to reviewer' ? 'selected' : ''}>Assigned to reviewer</option>
-          <option ${task.revStatus === 'Review in progress' ? 'selected' : ''}>Review in progress</option>
-          <option ${task.revStatus === 'Queries returned to preparer' ? 'selected' : ''}>Queries returned to preparer</option>
-          <option ${task.revStatus === 'Sent to client for review' ? 'selected' : ''}>Sent to client for review</option>
-          <option ${task.revStatus === 'Completed' ? 'selected' : ''}>Completed</option>
-        </select>
+      <td style="vertical-align: top;">
+        <div class="prep-container">
+          ${reviewers.map((r, i) => `
+            <div class="prep-row">
+              <select class="rev-status-dropdown"
+                      data-task-id="${task.id}"
+                      data-index="${i}">
+                <option ${r.status === 'Assigned to reviewer' ? 'selected' : ''}>Assigned to reviewer</option>
+                <option ${r.status === 'Review in progress' ? 'selected' : ''}>Review in progress</option>
+                <option ${r.status === 'Queries returned to preparer' ? 'selected' : ''}>Queries returned to preparer</option>
+                <option ${r.status === 'Sent to client for review' ? 'selected' : ''}>Sent to client for review</option>
+                <option ${r.status === 'Completed' ? 'selected' : ''}>Completed</option>
+              </select>
+
+              <button class="remove-reviewer"
+                data-task-id="${task.id}"
+                data-index="${i}">
+                ✕
+              </button>
+            </div>
+          `).join('')}
+        </div>
       </td>
 
       <td>${task.createdAt ? DataStore.formatDateDisplay(task.createdAt) : '—'}</td>
@@ -614,19 +750,6 @@ if (bulkDelete) {
     `;
 
     tbody.appendChild(tr);
-
-    // reviewer popup
-    const revCell = tr.querySelector('.reviewer-cell');
-    if (revCell) {
-      revCell.onclick = (e) => {
-        e.stopPropagation();
-        openUserPopup(revCell, reviewerArray, (updated) => {
-          task.reviewer = updated;
-          DataStore.saveTask(task);
-          TaskModule.renderTasks();
-        });
-      };
-    }
   });
 
   const selectAll = document.getElementById('selectAll');
