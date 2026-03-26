@@ -619,9 +619,11 @@ if (bulkDelete) {
         : [];
 
     const preparers = task.preparers || preparerArray.map(p => ({
-      name: p,
-      status: task.prepStatus || 'Assigned to preparer'
-    }));
+  name: p,
+  status: (task.preparers && task.preparers[0]?.status) 
+            || task.prepStatus 
+            || 'Assigned to preparer'
+}));
 
     // ✅ SAFE REVIEWER ARRAY
     const reviewerArray = Array.isArray(task.reviewer)
@@ -631,9 +633,11 @@ if (bulkDelete) {
         : [];
 
     const reviewers = task.reviewers || reviewerArray.map(r => ({
-      name: r,
-      status: task.revStatus || 'Assigned to reviewer'
-    }));
+  name: r,
+  status: (task.reviewers && task.reviewers[0]?.status) 
+            || task.revStatus 
+            || 'Assigned to reviewer'
+}));
 
     tr.innerHTML = `
       <td><input type="checkbox" class="row-select" data-id="${task.id}"></td>
