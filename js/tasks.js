@@ -288,10 +288,12 @@ const TaskModule = {
 
     body.addEventListener('click', (e) => {
 
-      if (e.target.classList.contains('remove-prep')) {
+     const removeBtn = e.target.closest('.remove-prep');
 
-  const taskId = e.target.dataset.taskId;
-  const index = parseInt(e.target.dataset.index, 10);
+if (removeBtn) {
+
+  const taskId = removeBtn.dataset.taskId;
+  const index = parseInt(removeBtn.dataset.index, 10);
 
   const task = DataStore.tasks.find(t => t.id === taskId);
   if (!task || !task.preparers) return;
