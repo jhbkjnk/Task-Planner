@@ -296,6 +296,8 @@ const TaskModule = {
       if (oldVal !== newVal) {
         task.preparers[index].status = newVal;
 
+        DataStore.saveTask(task);
+
         changes.preparerStatus = {
           user: task.preparers[index].name,
           old: oldVal,
@@ -321,6 +323,8 @@ const TaskModule = {
 
       if (oldVal !== newVal) {
         task.reviewers[index].status = newVal;
+
+        DataStore.saveTask(task);
 
         changes.reviewerStatus = {
           user: task.reviewers[index].name,
