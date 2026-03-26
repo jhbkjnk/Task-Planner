@@ -520,9 +520,9 @@ if (bulkDelete) {
       <td style="vertical-align: top;">
         <div class="prep-container">
           ${preparers.map((p, i) => `
-            <div style="margin-bottom:4px;">
-            <span class="preparer-pill">${p.name}</span>
-            </div>
+            <div class="prep-row">
+           <span class="preparer-pill">${p.name}</span>
+           </div>
           `).join('')}
 
           <select class="add-prep-dropdown" data-task-id="${task.id}">
@@ -538,7 +538,7 @@ if (bulkDelete) {
       <td style="vertical-align: top;">
         <div class="prep-container">
           ${preparers.map((p, i) => `
-            <div style="display:flex; gap:8px; margin-bottom:6px;">
+            <div class="prep-row">
               <select class="prep-status-dropdown"
                       data-task-id="${task.id}"
                       data-index="${i}">
