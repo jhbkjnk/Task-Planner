@@ -637,12 +637,15 @@ if (bulkDelete) {
         ? [task.reviewer]
         : [];
 
-    const reviewers = task.reviewers || reviewerArray.map(r => ({
-  name: r,
-  status: (task.reviewers && task.reviewers[0]?.status) 
-            || task.revStatus 
-            || 'Assigned to reviewer'
-}));
+    const reviewers = (task.reviewers && task.reviewers.length > 0)
+  ? task.reviewers.map(r => ({
+      ...r,
+      status: r.status || task.revStatus || 'Assigned to reviewer'
+    }))
+  : reviewerArray.map(r => ({
+      name: r,
+      status: task.revStatus || 'Assigned to reviewer'
+    }));
 
     tr.innerHTML = `
       <td><input type="checkbox" class="row-select" data-id="${task.id}"></td>
