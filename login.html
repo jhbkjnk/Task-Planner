@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Task Planner Login</title>
+<style>
+body{
+font-family:Cambria;
+display:flex;
+align-items:center;
+justify-content:center;
+height:100vh;
+background:#f4f4f4;
+}
+.login-box{
+text-align:center;
+background:white;
+padding:40px;
+border-radius:10px;
+box-shadow:0 5px 20px rgba(0,0,0,0.1);
+}
+button{
+background:#7b001c;
+color:white;
+border:none;
+padding:12px 20px;
+font-size:16px;
+border-radius:6px;
+cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="login-box">
+
+<h2>Task Planner</h2>
+
+<p>Please sign in with your Microsoft account</p>
+
+<button onclick="login()">Sign in with Microsoft</button>
+
+</div>
+
+<script>
+function login(){
+window.location.href="/.auth/login/aad";
+}
+</script>
+
+</body>
+</html>

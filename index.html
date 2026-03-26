@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Task Planner – Workflow Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/styles.css" />
+
+  <!-- SheetJS for Excel import -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+
+<body>
+  <div class="app-shell">
+    <div class="top-bar">
+      <div class="app-header">
+        <div class="app-title">Task Planner – Workflow Manager</div>
+        <div class="app-subtitle">
+          Track tasks by engagement with preparer &amp; reviewer statuses. Import from Excel, use templates,
+          duplicate &amp; move tasks, archive jobs, and see per-task audit history.
+        </div>
+      </div>
+
+      <div class="top-bar-right">
+        <div class="user-chip">
+          <span class="user-icon">👤</span>
+          <span id="loggedInUserName">Loading...</span>
+          <span class="divider">|</span>
+          <span id="loggedInUserRole" class="user-role"></span>
+          <span class="divider">|</span>
+          <button class="logout-link" onclick="logout()">Logout</button>
+        </div>
+
+        <!-- ===========================
+             OLD ACTIONS (kept for JS)
+             =========================== -->
+        <div class="app-actions original-actions">
+          <button class="btn btn-outline" id="btnImport" type="button">Import Tasks/Engagements</button>
+          <button class="btn btn-outline" id="btnExport" type="button">Export active CSV</button>
+          <button class="btn btn-outline" id="btnExportArchive" type="button">Export archived CSV</button>
+          <button class="btn btn-outline" id="btnExportEngagements" type="button">Export engagement list</button>
+          <button class="btn btn-outline" id="btnEngagements" type="button">Engagements</button>
+          <button class="btn btn-outline" id="btnNewEngagement" type="button">+ New Engagement</button>
+          <button class="btn btn-outline" id="btnUserManagement" type="button">User Management</button>
+          <button class="btn btn-outline" id="btnManageTemplates" type="button">Templates</button>
+          <button class="btn btn-primary" id="btnNewTask" type="button">+ New Task</button>
+        </div>
+
+        <!-- ===========================
+             NEW CLEAN TOOLBAR (UI)
+             =========================== -->
+        <div class="app-actions toolbar">
+          <!-- Primary -->
+          <button class="btn btn-primary" id="uiNewTask" type="button">+ New Task</button>
+          <button class="btn btn-outline" id="uiNewEngagement" type="button">+ New Engagement</button>
+          <button class="btn btn-outline" id="uiEngagements" type="button">Engagements</button>
+
+          <!-- Export dropdown -->
+          <div class="menu">
+            <button class="btn btn-outline menu-btn" type="button" data-menu="exportMenu">
+              Export <span class="chev">▾</span>
+            </button>
+
+            <div class="menu-panel" id="exportMenu">
+              <button class="menu-item" type="button" data-target="btnImport">Import Tasks/Engagements</button>
+              <div class="menu-sep"></div>
+              <button class="menu-item" type="button" data-target="btnExport">Export active CSV</button>
+              <button class="menu-item" type="button" data-target="btnExportArchive">Export archived CSV</button>
+              <button class="menu-item" type="button" data-target="btnExportEngagements">Export engagement list</button>
+            </div>
+          </div>
+
+          <!-- More dropdown -->
+          <div class="menu">
+            <button class="btn btn-outline menu-btn" type="button" data-menu="moreMenu">
+              More <span class="chev">▾</span>
+            </button>
+
+            <div class="menu-panel" id="moreMenu">
+              <button class="menu-item" type="button" data-target="btnManageTemplates">Templates</button>
+              <button class="menu-item" type="button" data-target="btnUserManagement">User Management</button>
+            </div>
+          </div>
+        </div>
+        <!-- ===== END TOOLBAR ===== -->
+      </div>
+    </div>
+
+    <div class="layout">
+      <!-- LEFT -->
+      <div class="layout-left">
+        <div class="card">
+          <div class="card-header"><strong>Status view</strong></div>
+          <div id="statusChips" class="chips-row">
+            <button type="button" class="chip active" data-status="All">All</button>
+            <button type="button" class="chip" data-status="Work in progress">Work in progress</button>
+            <button type="button" class="chip" data-status="Queries asked">Queries asked</button>
+            <button type="button" class="chip" data-status="Submitted to reviewer">Submitted to reviewer</button>
+            <button type="button" class="chip" data-status="Pending reviewer">Pending reviewer</button>
+            <button type="button" class="chip" data-status="Sent to client">Sent to client</button>
+            <button type="button" class="chip" data-status="Completed">Completed</button>
+          </div>
+
+          <div class="summary-row">
+            <div class="summary-item">
+              <div class="summary-label">Total tasks</div>
+              <div class="summary-value" id="statTotalTasks">0</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-label">Pending with preparer</div>
+              <div class="summary-value" id="statPendingPreparer">0</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-label">Pending with reviewer</div>
+              <div class="summary-value" id="statPendingReviewer">0</div>
+            </div>
+          </div>
+
+          <div class="chip-pill">
+            <span id="pillShowing">Showing 0 tasks</span>
+            <span class="pill-filter">
+              Active filter: <strong id="activeFilterLabel">All</strong>
+            </span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><strong>Filters</strong></div>
+          <div class="form-grid">
+            <label>
+              Entity
+              <select id="filterEntity">
+                <option value="All">All entities</option>
+              </select>
+            </label>
+
+            <label>
+              Service line
+              <select id="filterServiceLine">
+                <option value="All">All services</option>
+                <option value="Audit">Audit</option>
+                <option value="U.S. Tax">U.S. Tax</option>
+                <option value="Transfer Pricing">Transfer Pricing</option>
+                <option value="Valuations">Valuations</option>
+                <option value="State &amp; Local Tax">State &amp; Local Tax</option>
+                <option value="Other">Other</option>
+              </select>
+            </label>
+
+            <label>
+              Preparer (contains)
+              <input type="text" id="filterPreparer" placeholder="Name contains..." />
+            </label>
+
+            <label>
+              Reviewer (contains)
+              <input type="text" id="filterReviewer" placeholder="Name contains..." />
+            </label>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">Archive jobs by Job Code</div>
+          <div class="archive-controls">
+            <input type="text" id="archiveJobCodeInput" placeholder="Enter NetSuite Job Code" />
+            <button class="btn btn-outline" id="archiveJobBtn" type="button">Archive job</button>
+          </div>
+          <div class="archive-controls">
+            <button class="btn-link" id="btnToggleArchive" type="button">Show / hide archive</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="layout-right">
+        <div id="bulkBar" class="bulk-bar" style="display:none">
+          <span id="bulkCount">0 selected</span>
+          <div class="bulk-actions">
+            <button type="button" class="btn btn-outline btn-xs" id="bulkDelete">Delete selected</button>
+            <button type="button" class="btn btn-outline btn-xs" id="bulkArchiveJobs">Archive jobs for selected</button>
+          </div>
+        </div>
+
+        <div class="card card-table">
+          <div class="card-header"><strong>Active tasks</strong></div>
+          <div class="table-scroll" id="tableScroll">
+            <table id="tasksTable">
+              <thead>
+                <tr>
+                  <th style="width:32px;"><input type="checkbox" id="selectAll" /></th>
+                  <th>Entity</th>
+                  <th>Engagement</th>
+                  <th>Job code</th>
+                  <th>Client Code</th>
+                  <th>Partner</th>
+                  <th>Task</th>
+                  <th>Preparer</th>
+                  <th>Preparer status</th>
+                  <th>Reviewer</th>
+                  <th>Reviewer status</th>
+                  <th>Created date</th>
+                  <th>Due date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="taskTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <section id="archiveSection" style="display:none">
+          <div class="card card-table">
+            <div class="card-header"><strong>Archived tasks</strong></div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Entity</th>
+                    <th>Engagement</th>
+                    <th>Job code</th>
+                    <th>Client Code</th>
+                    <th>Partner</th>
+                    <th>Task</th>
+                    <th>Preparer</th>
+                    <th>Reviewer</th>
+                    <th>Preparer status</th>
+                    <th>Reviewer status</th>
+                    <th>Created date</th>
+                    <th>Due date</th>
+                    <th>Restore</th>
+                  </tr>
+                </thead>
+                <tbody id="archiveBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- Engagement list -->
+  <div class="modal-backdrop" id="modalEngagements">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <h3>Engagement list</h3>
+        <button type="button" class="modal-close" data-modal-close="modalEngagements">&times;</button>
+      </div>
+      <div class="modal-body">
+        <table>
+          <thead>
+            <tr>
+              <th> </th>
+              <th>Entity</th>
+              <th>Engagement Name</th>
+              <th>Job Code</th>
+              <th>Client Code</th>
+              <th>Service Line</th>
+              <th>Partner</th>
+              <th>Status</th>
+               <th>Actions</th> 
+            </tr>
+          </thead>
+          <tbody id="engagementTableBody"></tbody>
+        </table>
+
+        <!-- EDIT ENGAGEMENT MODAL -->
+        <div id="modalEditEngagement" class="modal">
+          <div class="modal-content">
+        
+            <div class="modal-header">
+              <h3>Edit Engagement</h3>
+              <span class="close" onclick="App.closeModal('modalEditEngagement')">&times;</span>
+            </div>
+        
+            <div class="modal-body">
+        
+              <input type="hidden" id="editEngId">
+        
+              <div class="form-group">
+                <label>Entity</label>
+                <input type="text" id="editEntity">
+              </div>
+        
+              <div class="form-group">
+                <label>Engagement Name</label>
+                <input type="text" id="editEngagementName">
+              </div>
+        
+              <div class="form-group">
+                <label>Job Code</label>
+                <input type="text" id="editJobCode">
+              </div>
+        
+              <div class="form-group">
+                <label>Client Code</label>
+                <input type="text" id="editClientCode">
+              </div>
+        
+              <div class="form-group">
+                <label>Service Line</label>
+                <input type="text" id="editServiceLine">
+              </div>
+        
+              <div class="form-group">
+                <label>Partner</label>
+                <input type="text" id="editPartner">
+              </div>
+        
+            </div>
+        
+            <div class="modal-footer">
+              <button id="btnUpdateEngagement" class="btn-danger">Update</button>
+            </div>
+        
+          </div>
+        </div>
+
+        <!-- ✅ Bulk Delete Button -->
+        <div style="margin-top:10px;">
+          <button id="btnBulkDeleteEng" class="btn-danger">Delete Selected</button>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MODALS ============ -->
+  <!-- New Task -->
+  <div class="modal-backdrop" id="modalNewTask">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>New task</h3>
+        <button type="button" class="modal-close" data-modal-close="modalNewTask">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="formNewTask">
+          <div class="form-grid">
+            <label>Engagement <select id="taskEngagement"></select></label>
+            <label>
+              Template (optional)
+              <select id="taskTemplate">
+                <option value="">None – enter tasks manually</option>
+              </select>
+            </label>
+
+            <div id="templateTaskSelector" style="margin-top:10px;"></div>
+            
+            <label>Task name (if not using template)
+              <input type="text" id="taskName" placeholder="e.g. PBC list – send to client" />
+            </label>
+            <label>Preparer <div id="preparerSelect"></div></label>
+            <label>Reviewer <div id="reviewerSelect"></div></label>
+            <label>
+              Preparer status
+              <select id="taskPrepStatus">
+                <option>Assigned to preparer</option>
+                <option>Data asked from client</option>
+                <option>PBC list yet to be sent</option>
+                <option>Work in progress</option>
+                <option>Queries asked</option>
+                <option>Submitted to reviewer</option>
+              </select>
+            </label>
+            <label>
+              Reviewer status
+              <select id="taskRevStatus">
+                <option>Assigned to reviewer</option>
+                <option>Review in progress</option>
+                <option>Queries returned to preparer</option>
+                <option>Sent to client for review</option>
+                <option>Completed</option>
+                <option>Awaiting response</option>
+                <option>Pending with preparer</option>
+              </select>
+            </label>
+            <label>Due date <input type="date" id="taskDueDate" /></label>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" data-modal-close="modalNewTask">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create task(s)</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Engagement -->
+  <div class="modal-backdrop" id="modalNewEngagement">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>New engagement</h3>
+        <button type="button" class="modal-close" data-modal-close="modalNewEngagement">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="formNewEngagement">
+          <div class="form-grid">
+            <label>Entity name <input type="text" id="engEntityName" /></label>
+            <label>Engagement name <input type="text" id="engName" /></label>
+            <label>NetSuite Job Code <input type="text" id="engJobCode" /></label>
+            <label>NetSuite Client Code <input type="text" id="engClientCode" /></label>
+            <label>
+              Service line
+              <select id="engServiceLine">
+                <option value="">Select service</option>
+                <option>Audit</option>
+                <option>U.S. Tax</option>
+                <option>Transfer Pricing</option>
+                <option>State &amp; Local Tax</option>
+                <option>Valuations</option>
+                <option>Other</option>
+              </select>
+            </label>
+            <label>Partner <select id="partnerSelect"></select></label>
+            <label>
+              Status
+              <select id="engStatus">
+                <option value="Active">Active</option>
+                <option value="Closed">Closed (archived)</option>
+              </select>
+            </label>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" data-modal-close="modalNewEngagement">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create engagement</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Templates -->
+  <div class="modal-backdrop" id="modalTemplates">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Task templates</h3>
+        <button type="button" class="modal-close" data-modal-close="modalTemplates">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="template-layout">
+          <div class="template-list">
+            <h4>Existing templates</h4>
+            <div id="templatesList" class="templates-list"></div>
+          </div>
+          <div class="template-editor">
+            <h4>Edit / add template</h4>
+            <label>Template name <input type="text" id="templateNameInput" /></label>
+            <label>Tasks (one per line) <textarea id="templateTasksInput" rows="8"></textarea></label>
+            <div class="modal-footer template-footer">
+              <button type="button" class="btn btn-outline" id="btnTemplateClear">New template</button>
+              <button type="button" class="btn btn-primary" id="btnTemplateSave">Save template</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Update Task / Audit Log -->
+  <div class="modal-backdrop" id="modalUpdateStatus">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <h3>Update task</h3>
+        <button type="button" class="modal-close" data-modal-close="modalUpdateStatus">&times;</button>
+      </div>
+
+      <div class="modal-body modal-body-split">
+        <form id="formUpdateStatus" class="update-form">
+          <div class="update-main">
+            <div class="update-title">
+              <span>Task:</span> <strong id="updateTaskNameLabel"></strong>
+            </div>
+
+            <div class="form-grid">
+              <label>Entity <input type="text" id="updateEntity" /></label>
+              <label>Engagement name <input type="text" id="updateEngagement" /></label>
+              <label>Job code <input type="text" id="updateJobCode" /></label>
+              <label>Move task to another engagement <select id="updateEngagementSelect"></select></label>
+              <label>Task name <input type="text" id="updateTaskName" /></label>
+              <label>Preparer <select id="updatePreparer"></select></label>
+              <label>Reviewer <select id="updateReviewer"></select></label>
+              <label>
+                Preparer status
+                <select id="updatePrepStatus">
+                  <option>Assigned to preparer</option>
+                  <option>Data asked from client</option>
+                  <option>PBC list yet to be sent</option>
+                  <option>Work in progress</option>
+                  <option>Queries asked</option>
+                  <option>Submitted to reviewer</option>
+                </select>
+              </label>
+              <label>
+                Reviewer status
+                <select id="updateRevStatus">
+                  <option>Assigned to reviewer</option>
+                  <option>Review in progress</option>
+                  <option>Queries returned to preparer</option>
+                  <option>Sent to client for review</option>
+                  <option>Completed</option>
+                  <option>Awaiting response</option>
+                  <option>Pending with preparer</option>
+                </select>
+              </label>
+              <label>Due date <input type="date" id="updateDueDate" /></label>
+              <label>Comment (optional) <textarea id="updateComment" rows="3"></textarea></label>
+            </div>
+
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline" data-modal-close="modalUpdateStatus">Cancel</button>
+              <button type="submit" class="btn btn-primary">Save changes</button>
+            </div>
+          </div>
+
+          <div class="update-audit">
+            <h4>Audit log</h4>
+            <div id="updateAuditLog" class="audit-log"></div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- USER MANAGEMENT PAGE -->
+  <section id="userManagementPage" class="user-page" style="display:none">
+    <div class="card card-table user-table-card">
+      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+        <strong>User Management</strong>
+
+        <div id="userBulkBar" style="display:none; margin:10px 0;">
+          <span id="selectedUserCount">0 Users Selected</span>
+          <button class="btn btn-outline" id="bulkChangeRole">Change Role</button>
+          <button class="btn btn-outline" id="bulkDisableUsers">Disable</button>
+          <button class="btn btn-outline" id="bulkDeleteUsers">Delete</button>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center">
+          <input type="text" id="userSearchInput" placeholder="Search users..."
+                 style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;width:200px;">
+          <button class="btn btn-outline" id="btnBackToTasks">← Back</button>
+          <button class="btn btn-primary" id="btnAddUser">+ Add User</button>
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table id="userTable">
+          <thead>
+            <tr>
+              <th style="width:40px"><input type="checkbox" id="selectAllUsers"></th>
+              <th style="width:220px">Name</th>
+              <th style="width:280px">Email</th>
+              <th style="width:140px">Role</th>
+              <th style="width:120px">Status</th>
+              <th style="width:120px">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="userTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Add User Modal -->
+  <div class="modal-backdrop" id="modalAddUser">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="userModalTitle">Add User</h3>
+        <button class="modal-close" data-modal-close="modalAddUser">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <form id="formAddUser">
+          <div class="edit-user-layout">
+            <div class="edit-user-menu">
+              <button type="button" class="edit-tab active" data-tab="generalTab">General</button>
+              <button type="button" class="edit-tab" data-tab="rolesTab">Roles</button>
+            </div>
+
+            <div class="edit-user-content">
+              <div id="generalTab" class="edit-tab-content active">
+                <label>Name <input type="text" id="userName" required /></label>
+                <label>Email <input type="email" id="userEmail" required /></label>
+                <label>
+                  Status
+                  <select id="userStatus">
+                    <option>Active</option>
+                    <option>Inactive</option>
+                  </select>
+                </label>
+              </div>
+
+              <div id="rolesTab" class="edit-tab-content">
+                <input type="hidden" id="userRole">
+                <label class="role-checkbox"><input type="checkbox" value="Partner"> Partner</label>
+                <label class="role-checkbox"><input type="checkbox" value="Manager"> Manager</label>
+                <label class="role-checkbox"><input type="checkbox" value="Admin"> Admin</label>
+                <label class="role-checkbox"><input type="checkbox" value="Staff"> Staff</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" data-modal-close="modalAddUser">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save User</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+ <!-- Import Modal -->
+<div class="modal-backdrop" id="modalImport">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Import Excel</h3>
+      <button class="modal-close" data-modal-close="modalImport">&times;</button>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="import-options">
+        <label class="radio-option">
+          <input type="radio" name="importType" value="tasks">
+          <span>Import Tasks</span>
+        </label>
+
+        <label class="radio-option">
+          <input type="radio" name="importType" value="engagements">
+          <span>Import Engagements</span>
+        </label>
+      </div>
+
+      <div id="importActions" class="import-actions">
+        <button class="btn btn-outline" id="btnDownloadImportTemplate">
+          Download Template
+        </button>
+
+        <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv">
+      </div>
+
+    </div>
+  </div>
+</div>
+
+  <!-- Helper -->
+  <script>
+    const $ = (id) => document.getElementById(id);
+  </script>
+
+  <!-- JS modules -->
+  <script src="js/datastore.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/tasks.js"></script>
+  <script src="js/filters.js"></script>
+  <script src="js/archive.js"></script>
+  <script src="js/engagements.js"></script>
+  <script src="js/engagementList.js"></script>
+  <script src="js/templates.js"></script>
+  <script src="js/newTask.js"></script>
+  <script src="js/newEngagement.js"></script>
+  <script src="js/importTasks.js"></script>
+  <script src="js/exportTasks.js"></script>
+  <script src="js/userAuth.js"></script>
+  <script src="js/UserManagement.js"></script>
+
+  <!-- Init modules (your existing) -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      if (typeof DataStore !== "undefined" && DataStore.init) DataStore.init();
+      if (typeof TaskModule !== "undefined") TaskModule.init();
+      if (typeof FiltersContext !== "undefined") FiltersContext.init();
+      if (typeof EngagementListModule !== "undefined") EngagementListModule.init();
+      if (typeof NewTaskModule !== "undefined") NewTaskModule.init();
+      if (typeof NewEngagementModule !== "undefined") NewEngagementModule.init();
+      if (typeof UserManagementModule !== "undefined") UserManagementModule.init();
+    });
+  </script>
+
+  <!-- ✅ Toolbar dropdown + bridge (NEW, SAFE) -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      // Bridge: new UI buttons trigger existing real buttons
+      const bridge = {
+        uiNewTask: "btnNewTask",
+        uiNewEngagement: "btnNewEngagement",
+        uiEngagements: "btnEngagements"
+      };
+
+      Object.entries(bridge).forEach(([uiId, realId]) => {
+        const ui = document.getElementById(uiId);
+        const real = document.getElementById(realId);
+        if (ui && real) ui.addEventListener("click", () => real.click());
+      });
+
+      // Dropdown menu items trigger real buttons
+      document.querySelectorAll(".menu-item[data-target]").forEach(item => {
+        item.addEventListener("click", () => {
+          const targetId = item.getAttribute("data-target");
+          const real = document.getElementById(targetId);
+          if (real) real.click();
+          closeMenus();
+        });
+      });
+
+      // Toggle menus
+      document.querySelectorAll(".menu-btn").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const panel = document.getElementById(btn.dataset.menu);
+          closeMenus(panel);
+          if (panel) panel.classList.toggle("show");
+        });
+      });
+
+      document.addEventListener("click", () => closeMenus());
+
+      function closeMenus(except) {
+        document.querySelectorAll(".menu-panel").forEach(p => {
+          if (p !== except) p.classList.remove("show");
+        });
+      }
+    });
+  </script>
+</body>
+</html>
