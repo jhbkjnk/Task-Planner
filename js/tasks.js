@@ -287,38 +287,39 @@ const TaskModule = {
     if (!body) return;
 
     body.addEventListener('click', (e) => {
+
+      if (e.target.classList.contains('remove-prep')) {
+
+  const taskId = e.target.dataset.taskId;
+  const index = parseInt(e.target.dataset.index, 10);
+
+  const task = DataStore.tasks.find(t => t.id === taskId);
+  if (!task || !task.preparers) return;
+
+  task.preparers.splice(index, 1);
+
+  DataStore.saveTask(task);
+  TaskModule.renderTasks();
+
+  return;
+}
       const moreBtn      = e.target.closest('.btn-more');
       const updateBtn    = e.target.closest('.action-update');
       const duplicateBtn = e.target.closest('.action-duplicate');
       const deleteBtn    = e.target.closest('.action-delete');
 
       if (moreBtn) {
-        e.stopPropagation();
-        const menu = moreBtn.closest('.action-menu');
-        const dropdown = menu.querySelector('.action-menu-dropdown');
+  e.stopPropagation();
+  const menu = moreBtn.closest('.action-menu');
+  const dropdown = menu.querySelector('.action-menu-dropdown');
 
-        document.querySelectorAll('.action-menu-dropdown.show').forEach(d => {
-          if (d !== dropdown) d.classList.remove('show');
-          
-        });
+  document.querySelectorAll('.action-menu-dropdown.show').forEach(d => {
+    if (d !== dropdown) d.classList.remove('show');
+  });
 
-      if (e.target.classList.contains('remove-prep')) {
-
-      const taskId = e.target.dataset.taskId;
-      const index = e.target.dataset.index;
-    
-      const task = DataStore.tasks.find(t => t.id === taskId);
-      if (!task || !task.preparers) return;
-    
-      task.preparers.splice(index, 1);
-    
-      DataStore.saveTask(task);
-      TaskModule.renderTasks();
-    }
-
-        dropdown.classList.toggle('show');
-        return;
-      }
+  dropdown.classList.toggle('show');
+  return; 
+}
 
       if (updateBtn)    this.openUpdateModal(updateBtn);
       if (duplicateBtn) this.duplicateTask(duplicateBtn);
