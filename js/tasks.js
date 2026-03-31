@@ -296,6 +296,9 @@ const TaskModule = {
   if (oldVal !== newVal) {
     task.preparers[index].status = newVal;
 
+    // ✅ THIS IS THE FIX
+    task.prepStatus = newVal;
+
     changes.preparerStatus = {
       user: task.preparers[index].name,
       old: oldVal,
@@ -321,6 +324,9 @@ const TaskModule = {
 
   if (oldVal !== newVal) {
     task.reviewers[index].status = newVal;
+
+    // ✅ THIS IS THE FIX
+    task.revStatus = newVal;
 
     changes.reviewerStatus = {
       user: task.reviewers[index].name,
@@ -619,7 +625,9 @@ if (bulkDelete) {
 
     const preparers = task.preparers || preparerArray.map(p => ({
   name: p,
-  status: 'Assigned to preparer'
+  status: (task.preparers && task.preparers[0]?.status) 
+            || task.prepStatus 
+            || 'Assigned to preparer'
 }));
 
     // ✅ SAFE REVIEWER ARRAY
